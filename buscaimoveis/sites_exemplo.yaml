@@ -1,0 +1,98 @@
+# Configuração dos sites de imobiliárias.
+# Para cada site, copie o bloco "exemplo-imobiliaria", dê um nome e ajuste a url.
+# Dica: use o comando  buscaimoveis testar-url "<endereço de uma página de resultados>"
+# para ver quantos anúncios o programa consegue ler naquela página antes de ativar o site.
+
+coleta:
+  atraso: 3.0                # segundos de espera entre pedidos ao mesmo site
+  respeitar_robots: true     # obedece o robots.txt do site (recomendado)
+  # user_agent: "buscaimoveis/1.0 (uso pessoal; meuemail@exemplo.com)"
+
+sites:
+  exemplo-imobiliaria:
+    ativo: false
+    # Marcadores aceitos na url: {finalidade} {tipo} {cidade} {cidade_nome} {uf} {UF} {pagina}
+    url: "https://www.exemplo.com.br/{finalidade}/{tipo}/{cidade}-{uf}/?pagina={pagina}"
+    finalidades: {venda: comprar, aluguel: alugar}      # como o site chama cada finalidade na url
+    tipos: {apartamento: apartamentos, casa: casas, cobertura: coberturas, terreno: terrenos}
+    max_paginas: 5
+    render: false            # true = abre o site num navegador (precisa de: pip install playwright)
+    # Opcional. Sem seletores o programa tenta sozinho (dados estruturados e detecção de cartões).
+    # seletores:
+    #   cartao: "article.imovel"
+    #   link: "a"
+    #   titulo: "h2"
+    #   preco: ".preco"
+    #   area: ".metragem"
+    #   bairro: ".bairro"
+
+# ---------------------------------------------------------------------------------------------
+# APIs: serviços que devolvem anúncios em JSON. Cada chamada pode custar dinheiro, por isso:
+#   - só rodam com  ativo: true  (escrito assim, sem aspas);
+#   - o limite diário de chamadas (limite_diario) é contado e respeitado;
+#   - a chave NUNCA vai neste arquivo: escreva ${NOME} e guarde com:  buscaimoveis chave NOME
+#
+# Marcadores aceitos nos textos de url, parametros e corpo:
+#   {cidade_nome} {cidade} {uf} {UF} {finalidade} {tipo} {tipos} {pagina} {offset} {bairro}
+#   {pmin} {pmax} {amin} {quartos} {banheiros} {vagas} {quartos_lista} {banheiros_lista} {vagas_lista}
+# Um campo cujo valor fica vazio (filtro não usado) é omitido da requisição.
+# "campos" diz onde está cada dado no JSON (caminho com pontos; números indicam posição em listas;
+# uma lista de caminhos funciona como alternativas, vale o primeiro que tiver valor).
+apis:
+  # Exemplo montado a partir da documentação pública do GeckoAPI (serviço pago que extrai anúncios
+  # do ZAP Imóveis; 100 créditos de teste). NÃO FOI TESTADO com a API real: rode o primeiro teste com
+  # poucas páginas e confira o resultado. Termos de uso do serviço e dos portais são de sua responsabilidade.
+  geckoapi-zap:
+    ativo: false
+    url: "https://api.geckoapi.com.br/v1/extract"
+    metodo: POST
+    cabecalhos:
+      Authorization: "Bearer ${GECKOAPI_CHAVE}"
+      Content-Type: "application/json"
+    corpo:
+      target: "zapimoveis.com.br"
+      type: "plp"
+      city: "{cidade_nome}"
+      state: "{UF}"
+      businessType: "{finalidade}"
+      neighborhood: "{bairro}"
+      priceMin: "{pmin}"
+      priceMax: "{pmax}"
+      areaMin: "{amin}"
+      bedrooms: "{quartos_lista}"
+      page: "{pagina}"
+      # Para filtrar por tipo na própria API, acrescente  propertyTypes: "{tipos}"  e preencha "tipos:" abaixo
+      # com os nomes que a documentação do serviço usa (a documentação cita, por exemplo, "land" para terreno).
+    finalidades: {venda: sale, aluguel: rent}
+    # tipos: {terreno: land}
+    resultados: "data.items"
+    proxima: "data.nextPage"
+    max_paginas: 3
+    limite_diario: 20
+    campos:
+      id: "id"
+      url: "url"
+      titulo: "description"
+      bairro: "address.neighborhood"
+      preco: "prices.mainValue"
+      area: ["attributes.usableAreas.0", "attributes.totalAreas.0"]
+      quartos: "attributes.bedrooms.0"
+      banheiros: "attributes.bathrooms.0"
+      vagas: "attributes.parkingSpaces.0"
+      caracteristicas: "amenities"
+    # mapa_caracteristicas: {POOL: piscina}   # traduz códigos da API para os nomes do buscador
+
+# ---------------------------------------------------------------------------------------------
+# Alertas: buscas salvas rodam sozinhas e avisam quando aparece imóvel novo ou o preço cai.
+alertas:
+  intervalo_min: 120          # de quanto em quanto tempo cada busca salva roda (mínimo aceito: 30)
+  queda_minima_pct: 3         # só avisa quedas de preço a partir deste percentual
+  silencio: "22:00-07:00"     # não envia notificações neste horário (ficam guardadas e saem depois)
+  notificar: []               # canais: termux, ntfy, telegram   ex.: [termux, ntfy]
+  # link: "http://localhost:8000"   # o que abre ao tocar na notificação
+  # ntfy:                           # app gratuito ntfy; o "topico" funciona como senha: use um nome longo e aleatório
+  #   topico: "buscaimoveis-troque-por-algo-longo-e-aleatorio"   (gere um com: buscaimoveis topico)
+  #   servidor: "https://ntfy.sh"
+  # telegram:
+  #   token: "${TELEGRAM_TOKEN}"      # guarde com: buscaimoveis chave TELEGRAM_TOKEN
+  #   chat_id: "123456789"
