@@ -1,0 +1,14 @@
+services:
+  buscaimoveis:
+    build: .
+    restart: unless-stopped
+    ports: ["8000:8000"]
+    volumes: ["dados:/dados"]
+    environment:
+      # Troque por uma senha sua (8+ caracteres). Sem ela, um código é gerado e aparece nos logs.
+      BUSCAIMOVEIS_SENHA: "troque-esta-senha"
+      # Ative as duas linhas abaixo SOMENTE quando o acesso for por HTTPS (túnel, proxy ou serviço de nuvem).
+      # BUSCAIMOVEIS_HTTPS: "1"
+      # BUSCAIMOVEIS_PROXY: "1"
+volumes:
+  dados:

@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "buscaimoveis"
+version = "1.4.0"
+description = "Coleta, filtra, pontua e compara imóveis de sites de imobiliárias"
+requires-python = ">=3.10"
+dependencies = ["pandas>=2.0", "httpx>=0.25", "beautifulsoup4>=4.12", "flask>=3.0", "pyyaml>=6.0", "waitress>=3.0"]
+
+[project.optional-dependencies]
+rapido = ["lxml>=4.9"]
+navegador = ["playwright>=1.40"]
+
+[project.scripts]
+buscaimoveis = "buscaimoveis.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["buscaimoveis*"]
+
+[tool.setuptools.package-data]
+buscaimoveis = ["static/*", "sites_exemplo.yaml"]
